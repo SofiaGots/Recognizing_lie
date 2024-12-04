@@ -1,0 +1,6 @@
+mediapipe
+PyYAML
+loguru
+torch
+pandas
+scikit-learn
