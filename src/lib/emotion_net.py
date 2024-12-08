@@ -21,7 +21,7 @@ class EmotionNet_1(nn.Module):
         return x
 
 
-class EmotionNet(nn.Module):
+class EmotionNet2(nn.Module):
     def __init__(self, input_size, num_classes, dropout_rate=0.3):
         super(EmotionNet, self).__init__()
 
@@ -49,3 +49,23 @@ class EmotionNet(nn.Module):
         features = self.feature_extractor(x)
         output = self.classifier(features)
         return output
+
+# https://claude.site/artifacts/332a763e-dd71-4fee-b49d-e1b7546dee40
+class EmotionNet(nn.Module):
+    def __init__(self, input_dim, num_classes):
+        super(EmotionNet, self).__init__()
+
+        self.network = nn.Sequential(
+            nn.Linear(input_dim, 128),    # Increase first layer neurons
+            nn.BatchNorm1d(128),          # Add batch normalization
+            nn.ReLU(),                    # Change activation
+            nn.Dropout(0.3),              # Reduce dropout rate
+            nn.Linear(128, 64),           # Add more depth
+            nn.BatchNorm1d(64),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(64, num_classes)    # Remove Softmax, let CrossEntropyLoss handle it
+        )
+
+    def forward(self, x):
+        return self.network(x)
