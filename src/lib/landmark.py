@@ -149,7 +149,7 @@ def get_landmarks(image, face_mesh=face_mesh):
     return None
 
 
-def crop_face(image):
+def get_face_coordinates(image):
     '''
     Оставить только лицо для распознавания
     '''
@@ -174,13 +174,18 @@ def crop_face(image):
     h = int(bbox.height * ih)
 
     # Add some padding
-    pad = int(max(w, h) * 0.2)
+    # pad = int(max(w, h) * 0.2)
+    pad = 5
     x = max(0, x - pad)
     y = max(0, y - pad)
     w = min(iw - x, w + 2 * pad)
     h = min(ih - y, h + 2 * pad)
 
-    # Crop face
+    return x, y, w, h
+
+
+def crop_face(image, x, y, w, h):
+
     face_crop = image[y:y+h, x:x+w]
 
     return np.ascontiguousarray(face_crop)
@@ -191,31 +196,14 @@ def read_image(path: str):
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
 
-def preprocess_image(path: str):
-    image = read_image(path)
-
-    image = crop_face(image)
-
-    # resize?
-    # face_resized = cv2.resize(face_crop, (96, 96))
-    # show_face(face_resized)
-
-    if image is not None:
-        landmarks_lst = get_landmarks(image)
-        if landmarks_lst:
-            landmarks_norm = preprocess_landmarks(landmarks_lst)
-
-            return landmarks_norm
-
-        return None
-
 def preprocess_image(image: str):
 
     if isinstance(image, str):
         image = read_image(image)
 
     image = cv2.flip(image, 1)
-    image = crop_face(image)
+    x, y, w, h = get_face_coordinates(image)
+    image = crop_face(image, x, y, w, h)
 
     # resize?
     # face_resized = cv2.resize(face_crop, (96, 96))
