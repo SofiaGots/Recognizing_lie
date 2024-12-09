@@ -1,6 +1,6 @@
 import torch.nn as nn
 
-
+# Попытка 1 найти встроенную модель, которая сможет правильно обучаться для моей задачи
 class EmotionNet_1(nn.Module):
     '''
     Опредление нейросети
@@ -20,8 +20,11 @@ class EmotionNet_1(nn.Module):
         x = self.fc3(x)
         return x
 
-
+# Попытка 2 найти встроенную модель, которая сможет правильно обучаться для моей задачи
 class EmotionNet2(nn.Module):
+    '''
+    Опредление нейросети
+    '''
     def __init__(self, input_size, num_classes, dropout_rate=0.3):
         super(EmotionNet, self).__init__()
 
@@ -50,21 +53,24 @@ class EmotionNet2(nn.Module):
         output = self.classifier(features)
         return output
 
+
+# Попытка 3 (работающая) найти встроенную модель, которая сможет правильно обучаться для моей задачи
 # https://claude.site/artifacts/332a763e-dd71-4fee-b49d-e1b7546dee40
+# Данный класс полностью скопирован из интернета, так как я не умею создавать встроенный модели
 class EmotionNet(nn.Module):
     def __init__(self, input_dim, num_classes):
         super(EmotionNet, self).__init__()
 
         self.network = nn.Sequential(
-            nn.Linear(input_dim, 128),    # Increase first layer neurons
-            nn.BatchNorm1d(128),          # Add batch normalization
-            nn.ReLU(),                    # Change activation
-            nn.Dropout(0.3),              # Reduce dropout rate
-            nn.Linear(128, 64),           # Add more depth
+            nn.Linear(input_dim, 128),    # Увеличение количества нейронов первого слоя
+            nn.BatchNorm1d(128),          # Добавление Batch нормализации
+            nn.ReLU(),                    # Активация изменений
+            nn.Dropout(0.3),              # Снижение уровня точности (погрешность)
+            nn.Linear(128, 64),           # Добавление большей глубины
             nn.BatchNorm1d(64),
             nn.ReLU(),
             nn.Dropout(0.2),
-            nn.Linear(64, num_classes)    # Remove Softmax, let CrossEntropyLoss handle it
+            nn.Linear(64, num_classes)
         )
 
     def forward(self, x):

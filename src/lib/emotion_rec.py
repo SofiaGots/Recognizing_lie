@@ -3,9 +3,9 @@ import numpy as np
 # Функция для классификации эмоций на основе точек лица с нормализацией
 def classify_emotion(landmarks):
     # Нормализация координат относительно ширины лица
-    left_cheek = np.array([landmarks[234].x, landmarks[234].y])
-    right_cheek = np.array([landmarks[454].x, landmarks[454].y])
-    face_width = np.linalg.norm(right_cheek - left_cheek)
+    left_cheek = np.array([landmarks[234].x, landmarks[234].y]) # левая щека
+    right_cheek = np.array([landmarks[454].x, landmarks[454].y]) # правая щека
+    face_width = np.linalg.norm(right_cheek - left_cheek) # ширина лица
 
     # Нормализованные ключевые точки
     left_mouth = np.array([landmarks[61].x, landmarks[61].y]) / face_width
@@ -16,7 +16,7 @@ def classify_emotion(landmarks):
     right_eyebrow = np.array([landmarks[285].x, landmarks[285].y]) / face_width
     nose_bridge = np.array([landmarks[168].x, landmarks[168].y]) / face_width
 
-    # Расчет расстояний и пропорций
+    # Расчет расстояний и пропорций для эмоции "angry" (все равно работает только для частных случаев)
     brow_distance = np.linalg.norm(left_eyebrow - right_eyebrow) / face_width
     left_brow_to_nose = np.abs(left_eyebrow[1] - nose_bridge[1])  # Вертикальное смещение левой брови от носа
     right_brow_to_nose = np.abs(right_eyebrow[1] - nose_bridge[1])  # Вертикальное смещение правой брови от носа

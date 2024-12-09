@@ -9,15 +9,16 @@ face_detection = mp.solutions.face_detection.FaceDetection(
     min_detection_confidence=0.5)
 mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh(
-    static_image_mode=True,             # If set to false, the solution treats the input images as a video stream.
-    max_num_faces=1,                    # Maximum number of faces to detect.
-    refine_landmarks=True,              # Whether to further refine the landmark coordinates around the eyes and lips, and output additional landmarks around the irises
-    min_detection_confidence=0.7        # Minimum confidence value ([0.0, 1.0]) from the face detection model for the detection to be considered successful. Default to 0.5.
+    static_image_mode=True,             # Обработка входных изображений (стоит True)
+    max_num_faces=1,                    # Максимальное количество лиц для обнаружения
+    refine_landmarks=True,              # Детализация точек
+    min_detection_confidence=0.7        # Минимальная уверенность модели для успешного обнаружения
 )
 
-
+# Функция 1 вычисления признаков (нормализация всех координат относительно носа)
 def feature1_norm_relative_coord(landmarks: list):
-    base_x, base_y, base_z = landmarks[4]            # Base reference point (e.g., nose tip, landmark 4)
+    # Базовая точка отсчета (кончик носа)
+    base_x, base_y, base_z = landmarks[4]
 
     normalized_coords = []
     for x, y, z in landmarks:
@@ -29,7 +30,7 @@ def feature1_norm_relative_coord(landmarks: list):
     max_value = max(map(abs, normalized_coords))
     return [coord / max_value for coord in normalized_coords]
 
-
+# Функция 2 вычисления признаков (нормализация всех расстояний между всеми точками)
 def feature2_parwise_distance(landmarks: list):
     pairwise_distances = []
     for i, j in combinations(range(len(landmarks)), 2):
@@ -42,17 +43,19 @@ def feature2_parwise_distance(landmarks: list):
     max_dist = max(pairwise_distances)
     return [d / max_dist for d in pairwise_distances]
 
-
+# Функция 3 вычисления признаков (рассчет углов между тройками точек)
 def feature3_angles(landmarks: list):
     angles = []
     key_triplets = [
-        (33, 4, 263),  # Eyes-nose-eyes
-        (61, 4, 291),  # Mouth corners-nose
-        (0, 4, 17),    # Chin-nose-top of forehead
+        (33, 4, 263),  # глаза - нос - глаза
+        (61, 4, 291),  # правый уголок рта - нос - левый уголок рта
+        (0, 4, 17),    # подбородок - нос - верх лоб
     ]
     for i, j, k in key_triplets:
+        # Вектора для заданных точек
         v1 = np.array(landmarks[j]) - np.array(landmarks[i])
         v2 = np.array(landmarks[k]) - np.array(landmarks[i])
+        # Скалярное произведение (угол между векторами)
         dot_product = np.dot(v1, v2)
         norm_v1 = np.linalg.norm(v1)
         norm_v2 = np.linalg.norm(v2)
@@ -61,29 +64,31 @@ def feature3_angles(landmarks: list):
 
     return angles
 
-
+# Функция 4 вычисления признаков (нормализация расстояния между ключевыми точками (глаза, рот, нос))
 def feature4_euclidean_distance(landmarks: list):
-
+    # Расстояние между точками
     def euclidean_distance(p1, p2):
         return math.sqrt(
             (p1[0] - p2[0]) ** 2 +
             (p1[1] - p2[1]) ** 2 +
             (p1[2] - p2[2]) ** 2
         )
-
+    
     eye_distance = euclidean_distance(landmarks[33], landmarks[263])
     mouth_width = euclidean_distance(landmarks[61], landmarks[291])
     nose_length = euclidean_distance(landmarks[4], landmarks[0])
     face_height = euclidean_distance(landmarks[0], landmarks[10])
+    # Нормализация на высоту лица
     return [
         eye_distance / face_height,
         mouth_width / face_height,
         nose_length / face_height,
     ]
 
+# Функция 5 вычисления признаков (нормализация расстояния каждой точки до кончика носа)
 def feature5_euclidean_distance(landmarks: list):
-
-    base_x, base_y, base_z = landmarks[4]            # Base reference point (e.g., nose tip, landmark 4)
+    # Базовая точка отсчета (кончик носа)
+    base_x, base_y, base_z = landmarks[4]
 
     normalized_coords = []
     for x, y, z in landmarks:
@@ -98,24 +103,22 @@ def feature5_euclidean_distance(landmarks: list):
     max_value = max(map(abs, normalized_coords))
     return [coord / max_value for coord in normalized_coords]
 
-
+# Создается массив с особенностями точек на лице
+# Данный код (а также функции, на которые он ссылается) полностью скопирован из интернета, так как я не умею делать массив с таким огромным количеством измерений
 def preprocess_landmarks(landmarks: list):
 
     _landmarks = []
 
     _landmarks.extend(feature1_norm_relative_coord(landmarks))
-    # _landmarks.extend(feature2_parwise_distance(landmarks))
     _landmarks.extend(feature3_angles(landmarks))
     _landmarks.extend(feature4_euclidean_distance(landmarks))
     _landmarks.extend(feature5_euclidean_distance(landmarks))
 
     return _landmarks
 
-
+# Преобразование относительных координат в абсолютные (так как первоначально координаты имеют значение от 0 до 1)
+# Код скопирован из интернета, так как я не знала, что такую функцию нужно делать
 def landmarks_list(image, landmarks):
-    # ORIGINAL
-    # landmarks = [coord for landmark in face_landmarks.landmark for coord in (landmark.x, landmark.y, landmark.z)]
-
     image_width, image_height = image.shape[1], image.shape[0]
 
     landmark_points = []
@@ -129,11 +132,8 @@ def landmarks_list(image, landmarks):
 
     return landmark_points
 
-
+# Получение координат меток
 def get_landmarks(image, face_mesh=face_mesh):
-    '''
-    Получить координаты меток
-    '''
 
     image.flags.writeable = False
     results = face_mesh.process(image)
@@ -142,17 +142,13 @@ def get_landmarks(image, face_mesh=face_mesh):
     if results.multi_face_landmarks:
         for face_landmarks in results.multi_face_landmarks:
             landmarks = landmarks_list(image, face_landmarks)
-            # landmarks = [coord for landmark in face_landmarks.landmark for coord in (landmark.x, landmark.y, landmark.z)]
 
         return landmarks
 
     return None
 
-
+# Оставить только лицо для распознавания
 def get_face_coordinates(image):
-    '''
-    Оставить только лицо для распознавания
-    '''
     results = face_detection.process(image)
 
     if not results.detections:
@@ -160,21 +156,20 @@ def get_face_coordinates(image):
         return None, None, None, None
 
 
-    # Get the first face detection
+    # Получение первого распознавания лица
     detection = results.detections[0]
 
-    # Extract face bounding box
+    # Извлечение ограничивающую рамку для лица
     ih, iw, _ = image.shape
     bbox = detection.location_data.relative_bounding_box
 
-    # Convert relative coordinates to absolute
+    # Преобразование относительных координат в абсолютные
     x = int(bbox.xmin * iw)
     y = int(bbox.ymin * ih)
     w = int(bbox.width * iw)
     h = int(bbox.height * ih)
 
-    # Add some padding
-    # pad = int(max(w, h) * 0.2)
+    # Отступы от лица, чтобы было удобнее воспринимать
     pad = 5
     x = max(0, x - pad)
     y = max(0, y - pad)
@@ -183,36 +178,36 @@ def get_face_coordinates(image):
 
     return x, y, w, h
 
-
+# Обрезание изображения только до области лица (для более подробной работы с эмоцией человека)
 def crop_face(image, x, y, w, h):
 
     face_crop = image[y:y+h, x:x+w]
 
     return np.ascontiguousarray(face_crop)
 
-
+# Считывание изображения
 def read_image(path: str):
     image = cv2.imread(path)
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-
+# Извлечение точек и вычисление признаков
 def preprocess_image(image: str):
 
     if isinstance(image, str):
         image = read_image(image)
 
     image = cv2.flip(image, 1)
+    # Нахождение точек
     x, y, w, h = get_face_coordinates(image)
+    # Обрезание лица
     if x is not None:
         image = crop_face(image, x, y, w, h)
 
-    # resize?
-    # face_resized = cv2.resize(face_crop, (96, 96))
-    # show_face(face_resized)
-
     if image is not None:
+        # Извлечение точек
         landmarks_lst = get_landmarks(image)
         if landmarks_lst:
+            # Вычисление признаков
             landmarks_norm = preprocess_landmarks(landmarks_lst)
 
             return landmarks_norm

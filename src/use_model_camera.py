@@ -4,7 +4,7 @@ import cv2
 import mediapipe as mp
 import os
 
-
+# Библиотека, взятая из интернета (вся работа с ней также взята из интернета)
 from loguru import logger as log
 
 from lib.emotion_net import EmotionNet
@@ -14,66 +14,61 @@ from lib.emotion_rec import classify_emotion
 from lib.landmark import preprocess_image, get_face_coordinates
 from lib import encoder
 
-DATATEST_DIR = os.environ['DATATEST_DIR']
+DATATEST_DIR = os.environ['DATATEST_DIR'] # Директория с тестовыми изображениями
 
-MODELS_DIR = os.environ['MODELS_DIR']
-MODEL_FILE = os.path.join(MODELS_DIR, os.environ['MODEL_FILE'])
-SCALER_MEAN = os.path.join(MODELS_DIR, os.environ['SCALER_MEAN'])
-SCALER_SCALE = os.path.join(MODELS_DIR, os.environ['SCALER_SCALE'])
-LABEL_CLASSES = os.path.join(MODELS_DIR, os.environ['LABEL_CLASSES'])
+MODELS_DIR = os.environ['MODELS_DIR'] # Директория с моделью
+MODEL_FILE = os.path.join(MODELS_DIR, os.environ['MODEL_FILE']) # Файл модели
+SCALER_MEAN = os.path.join(MODELS_DIR, os.environ['SCALER_MEAN']) # Сохранения параметров данных (среднее по трем каналам)
+SCALER_SCALE = os.path.join(MODELS_DIR, os.environ['SCALER_SCALE']) # Сохранения параметров масштабирования данных
+LABEL_CLASSES = os.path.join(MODELS_DIR, os.environ['LABEL_CLASSES']) # Файл с индексами эмоций
 
 
 input_size = 1918  # Количество точек для распознавания
 num_classes = 4 # Количество категорий (эмоций)
 
+# Инициализация модели
 model = EmotionNet(input_size, num_classes)
 model.load_state_dict(torch.load(MODEL_FILE, weights_only=True))
 model.eval()
 
+# Масштабироание данных
 scaler_mean = np.load(SCALER_MEAN)
 scaler_scale = np.load(SCALER_SCALE)
 
-# Initialize MediaPipe Face Mesh
+# Работа с MediaPipe (извлечение координат основных точек лица)
 mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh(static_image_mode=False, max_num_faces=1, refine_landmarks=True)
 mp_drawing = mp.solutions.drawing_utils
 
-# CSV file for saving data
+# CSV файл для сохранения данных
 output_csv = "emotion_data.csv"
 
-# Define emotions
-emotions = ["neutral", "happy", "sad", "angry", "lying"]  # Add more emotions as needed
+# Эмоции (добавлена 'lying' на ближайшие планы)
+emotions = ["neutral", "happy", "sad", "angry", "lying"]
 
-# Start webcam and collect data
+# Начало работы: Включение веб-камеры
 cap = cv2.VideoCapture(0)
 
 current_emotion = None
 print(f"Available emotions: {emotions}")
 
-
+# Предсказание эмоций с потока изображение при помощи заранее обученой модели
 def predict_emotion(landmarks):
-    '''
-    Evaluate emotion from an image using a pre-trained model with enhanced output
-    '''
     try:
+        # Нормализация данных
         landmarks_normalized = (landmarks - scaler_mean) / scaler_scale
         input_tensor = torch.tensor(landmarks_normalized, dtype=torch.float32).unsqueeze(0)
 
-        # Perform emotion evaluation
+        # Определение вероятности итоговой эмоции
         with torch.no_grad():
             outputs = model(input_tensor)
+            # Преобразует выводы модели в вероятность
             probabilities = torch.softmax(outputs, dim=1).numpy().flatten()
             predicted_class_idx = np.argmax(probabilities)
+            # Итоговая вероятность предсказанной эмоции
             confidence = probabilities[predicted_class_idx]
-
-        # Rank emotions with more context
-        # ranked_classes = sorted(
-        #     zip(label_classes, probabilities),
-        #     key=lambda x: x[1],
-        #     reverse=True
-        # )
-
-        # primary_emotion = label_classes[predicted_class_idx]
+        
+        # Определение эмоции
         predicted_emotion = encoder.decode(predicted_class_idx)
 
         return predicted_emotion, confidence
@@ -95,9 +90,9 @@ while True:
         log.error("Failed to capture frame.")
         break
 
-    # Convert frame to RGB
+    # Конвертирование изображения в RGB
     rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
+    # Извлечение координат ключевых точек лица
     landmarks = preprocess_image(rgb_frame)
 
     try:
@@ -105,14 +100,14 @@ while True:
     except:
         predicted_emotion = False
 
-            # Display predicted emotion on the frame
+    # Вывод итоговой эмоцию и вероятность, определенные при помощи модели, на экран
     if predicted_emotion:
         text_for_detection = f"ML detected emotion: {predicted_emotion} ({confidence*100:.2f}%)"
     else:
         text_for_detection = f"No emotion detected"
     cv2.putText(frame, text_for_detection, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
-    # Display the frame
+    # Название изображение
     cv2.imshow("Emotion Detection", frame)
 
 
@@ -133,16 +128,16 @@ while True:
             emotion = classify_emotion(face_landmarks.landmark)
             text_for_recognition = f"Coordinates based emotion: {emotion}"
 
-            # Отображение эмоции над квадратом
+            # Вывод итоговой эмоцию и вероятность, определенные при помощи координат точек, на экран
             cv2.putText(frame, text_for_recognition, (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
     # Отображение изображения
     cv2.imshow('Emotion Recognition', frame)
 
-    # Exit on pressing 'q'
+    # Завершение работы программы при нажатии клавиши 'q'
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-# Release resources
+# Очистква ресурсов
 cap.release()
 cv2.destroyAllWindows()

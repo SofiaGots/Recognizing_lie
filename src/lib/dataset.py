@@ -3,6 +3,7 @@ import os
 
 from lib import encoder
 
+# Функция, которая возвращает эмоцию и координаты точек на лице
 def get_data(path):
     for emotion in os.listdir(path):
         if emotion != '.DS_Store':
