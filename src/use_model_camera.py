@@ -126,7 +126,8 @@ while True:
             x, y, w, h = get_face_coordinates(rgb_frame)
 
             # Рисование квадрата вокруг лица
-            cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+            if x is not None:
+                cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
             # Классификация эмоции
             emotion = classify_emotion(face_landmarks.landmark)

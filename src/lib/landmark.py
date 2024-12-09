@@ -157,7 +157,7 @@ def get_face_coordinates(image):
 
     if not results.detections:
         print(f'No face detected in the image')
-        return None
+        return None, None, None, None
 
 
     # Get the first face detection
@@ -203,7 +203,8 @@ def preprocess_image(image: str):
 
     image = cv2.flip(image, 1)
     x, y, w, h = get_face_coordinates(image)
-    image = crop_face(image, x, y, w, h)
+    if x is not None:
+        image = crop_face(image, x, y, w, h)
 
     # resize?
     # face_resized = cv2.resize(face_crop, (96, 96))
