@@ -16,15 +16,15 @@ from lib.emotion_net import EmotionNet
 from lib import encoder
 
 
-DATASET_DIR = os.environ['DATASET_DIR'] # Путь к исходному набору данных
-MODELS_DIR = os.environ['MODELS_DIR'] # Путь к директории, где будут храниться результаты обучения
-DATASET_RES = os.path.join(MODELS_DIR, os.environ['DATASET_RES']) # CSV файл с предварительно обработанными данными (эмоции + признаки лица)
+DATASET_DIR = os.environ['DATASET_DIR']  # Путь к исходному набору данных
+MODELS_DIR = os.environ['MODELS_DIR']  # Путь к директории, где будут храниться результаты обучения
+DATASET_RES = os.path.join(MODELS_DIR, os.environ['DATASET_RES'])  # CSV файл с предварительно обработанными данными (эмоции + признаки лица)
 
-MODEL_FILE = os.path.join(MODELS_DIR, os.environ['MODEL_FILE']) # Путь для сохранения обученной модели
-SCALER_MEAN = os.path.join(MODELS_DIR, os.environ['SCALER_MEAN']) # Сохранения параметров данных (среднее по трем каналам)
-SCALER_SCALE = os.path.join(MODELS_DIR, os.environ['SCALER_SCALE']) # Сохранения параметров масштабирования данных
+MODEL_FILE = os.path.join(MODELS_DIR, os.environ['MODEL_FILE'])  # Путь для сохранения обученной модели
+SCALER_MEAN = os.path.join(MODELS_DIR, os.environ['SCALER_MEAN'])  # Сохранения параметров данных (среднее по трем каналам)
+SCALER_SCALE = os.path.join(MODELS_DIR, os.environ['SCALER_SCALE'])  # Сохранения параметров масштабирования данных
 
-RANDOM_STATE = int(os.environ['RANDOM_STATE']) # начальный параметр для повторяемости экспериментов (чтобы люди, бравшие данную модель, имели такие же результаты обучения)
+RANDOM_STATE = int(os.environ['RANDOM_STATE'])  # начальный параметр для повторяемости экспериментов (чтобы люди, бравшие данную модель, имели такие же результаты обучения)
 
 
 # Загрузка и подготовка данных
@@ -34,7 +34,7 @@ emotion = data.iloc[:, 0].values   # Эмоции
 
 # Масштабирование данных
 # Данный код скопирован из интернета, так как я не знала функцию масштабирования
-scaler = StandardScaler() # Масштабирует данные так, чтобы они имели среднее 0 и стандартное отклонение 1
+scaler = StandardScaler()  # Масштабирует данные так, чтобы они имели среднее 0 и стандартное отклонение 1
 landmarks_normalized = scaler.fit_transform(landmarks)
 np.save(SCALER_MEAN, scaler.mean_)
 np.save(SCALER_SCALE, scaler.scale_)

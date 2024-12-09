@@ -14,17 +14,17 @@ from lib.emotion_rec import classify_emotion
 from lib.landmark import preprocess_image, get_face_coordinates
 from lib import encoder
 
-DATATEST_DIR = os.environ['DATATEST_DIR'] # Директория с тестовыми изображениями
+DATATEST_DIR = os.environ['DATATEST_DIR']  # Директория с тестовыми изображениями
 
-MODELS_DIR = os.environ['MODELS_DIR'] # Директория с моделью
-MODEL_FILE = os.path.join(MODELS_DIR, os.environ['MODEL_FILE']) # Файл модели
-SCALER_MEAN = os.path.join(MODELS_DIR, os.environ['SCALER_MEAN']) # Сохранения параметров данных (среднее по трем каналам)
-SCALER_SCALE = os.path.join(MODELS_DIR, os.environ['SCALER_SCALE']) # Сохранения параметров масштабирования данных
-LABEL_CLASSES = os.path.join(MODELS_DIR, os.environ['LABEL_CLASSES']) # Файл с индексами эмоций
+MODELS_DIR = os.environ['MODELS_DIR']  # Директория с моделью
+MODEL_FILE = os.path.join(MODELS_DIR, os.environ['MODEL_FILE'])  # Файл модели
+SCALER_MEAN = os.path.join(MODELS_DIR, os.environ['SCALER_MEAN'])  # Сохранения параметров данных (среднее по трем каналам)
+SCALER_SCALE = os.path.join(MODELS_DIR, os.environ['SCALER_SCALE'])  # Сохранения параметров масштабирования данных
+LABEL_CLASSES = os.path.join(MODELS_DIR, os.environ['LABEL_CLASSES'])  # Файл с индексами эмоций
 
 
 input_size = 1918  # Количество точек для распознавания
-num_classes = 4 # Количество категорий (эмоций)
+num_classes = 4  # Количество категорий (эмоций)
 
 # Инициализация модели
 model = EmotionNet(input_size, num_classes)
@@ -52,6 +52,7 @@ cap = cv2.VideoCapture(0)
 current_emotion = None
 print(f"Available emotions: {emotions}")
 
+
 # Предсказание эмоций с потока изображение при помощи заранее обученой модели
 def predict_emotion(landmarks):
     try:
@@ -67,7 +68,7 @@ def predict_emotion(landmarks):
             predicted_class_idx = np.argmax(probabilities)
             # Итоговая вероятность предсказанной эмоции
             confidence = probabilities[predicted_class_idx]
-        
+
         # Определение эмоции
         predicted_emotion = encoder.decode(predicted_class_idx)
 
@@ -104,14 +105,11 @@ while True:
     if predicted_emotion:
         text_for_detection = f"ML detected emotion: {predicted_emotion} ({confidence*100:.2f}%)"
     else:
-        text_for_detection = f"No emotion detected"
+        text_for_detection = "No emotion detected"
     cv2.putText(frame, text_for_detection, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
     # Название изображение
     cv2.imshow("Emotion Detection", frame)
-
-
-
 
     # Обнаружение лицевых меток
     results = face_mesh.process(rgb_frame)
