@@ -1,11 +1,14 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import torch
 import torch.nn as nn
 import os
 
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import confusion_matrix
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from lib.emotion_net import EmotionNet
@@ -52,17 +55,16 @@ model = EmotionNet(input_size, num_classes)
 # Loss and optimizer
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+# optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
 
 # Training loop
-num_epochs = 550
+num_epochs = 1000
 for epoch in range(num_epochs):
-    # Forward pass
-    outputs = model(X_train)
-    loss = criterion(outputs, y_train)
-
-    # Backward pass and optimization
-    # Изменение параметров нейросетей
     optimizer.zero_grad()
+    outputs = model(X_train)
+
+    # Compute loss
+    loss = criterion(outputs, y_train)
     loss.backward()
     optimizer.step()
 
@@ -74,5 +76,13 @@ with torch.no_grad():
     y_pred_classes = torch.argmax(y_pred, axis=1)
     accuracy = (y_pred_classes == y_test).sum().item() / y_test.size(0)
     print(f"Accuracy: {accuracy * 100:.2f}%")
+
+    # Confusion matrix
+    cm = confusion_matrix(y_test.numpy(), y_pred_classes.numpy())
+    sns.heatmap(cm, annot=True, fmt='d')
+    plt.xlabel('Predicted')
+    plt.ylabel('Actual')
+    plt.show()
+
 
 torch.save(model.state_dict(), MODEL_FILE)

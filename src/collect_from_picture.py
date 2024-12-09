@@ -27,7 +27,7 @@ def main():
         for emotion, files in get_data(path=DATASET_DIR):
             for file in files:
 
-                landmarks = preprocess_image(path=file)
+                landmarks = preprocess_image(image=file)
 
                 if landmarks:
                     csv_writer.writerow([encode(emotion)] + landmarks)

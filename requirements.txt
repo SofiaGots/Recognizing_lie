@@ -4,3 +4,5 @@ loguru
 torch
 pandas
 scikit-learn
+seaborn
+torchviz

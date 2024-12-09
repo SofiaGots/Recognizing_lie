@@ -1,6 +1,9 @@
 import cv2
 import mediapipe as mp
+import numpy as np
+import math
 
+from itertools import combinations
 
 face_detection = mp.solutions.face_detection.FaceDetection(
     min_detection_confidence=0.5)
@@ -13,20 +16,98 @@ face_mesh = mp_face_mesh.FaceMesh(
 )
 
 
+def feature1_norm_relative_coord(landmarks: list):
+    base_x, base_y, base_z = landmarks[4]            # Base reference point (e.g., nose tip, landmark 4)
+
+    normalized_coords = []
+    for x, y, z in landmarks:
+        normalized_coords.extend([
+            x - base_x,
+            y - base_y,
+            z - base_z
+        ])
+    max_value = max(map(abs, normalized_coords))
+    return [coord / max_value for coord in normalized_coords]
+
+
+def feature2_parwise_distance(landmarks: list):
+    pairwise_distances = []
+    for i, j in combinations(range(len(landmarks)), 2):
+        dist = math.sqrt(
+            (landmarks[i][0] - landmarks[j][0]) ** 2 +
+            (landmarks[i][1] - landmarks[j][1]) ** 2 +
+            (landmarks[i][2] - landmarks[j][2]) ** 2
+        )
+        pairwise_distances.append(dist)
+    max_dist = max(pairwise_distances)
+    return [d / max_dist for d in pairwise_distances]
+
+
+def feature3_angles(landmarks: list):
+    angles = []
+    key_triplets = [
+        (33, 4, 263),  # Eyes-nose-eyes
+        (61, 4, 291),  # Mouth corners-nose
+        (0, 4, 17),    # Chin-nose-top of forehead
+    ]
+    for i, j, k in key_triplets:
+        v1 = np.array(landmarks[j]) - np.array(landmarks[i])
+        v2 = np.array(landmarks[k]) - np.array(landmarks[i])
+        dot_product = np.dot(v1, v2)
+        norm_v1 = np.linalg.norm(v1)
+        norm_v2 = np.linalg.norm(v2)
+        angle = np.arccos(dot_product / (norm_v1 * norm_v2))
+        angles.append(np.degrees(angle))
+
+    return angles
+
+
+def feature4_euclidean_distance(landmarks: list):
+
+    def euclidean_distance(p1, p2):
+        return math.sqrt(
+            (p1[0] - p2[0]) ** 2 +
+            (p1[1] - p2[1]) ** 2 +
+            (p1[2] - p2[2]) ** 2
+        )
+
+    eye_distance = euclidean_distance(landmarks[33], landmarks[263])
+    mouth_width = euclidean_distance(landmarks[61], landmarks[291])
+    nose_length = euclidean_distance(landmarks[4], landmarks[0])
+    face_height = euclidean_distance(landmarks[0], landmarks[10])
+    return [
+        eye_distance / face_height,
+        mouth_width / face_height,
+        nose_length / face_height,
+    ]
+
+def feature5_euclidean_distance(landmarks: list):
+
+    base_x, base_y, base_z = landmarks[4]            # Base reference point (e.g., nose tip, landmark 4)
+
+    normalized_coords = []
+    for x, y, z in landmarks:
+        normalized_coords.append(
+            math.sqrt(
+                (x - base_x) ** 2 +
+                (y - base_y) ** 2 +
+                (z - base_z) ** 2
+            )
+        )
+
+    max_value = max(map(abs, normalized_coords))
+    return [coord / max_value for coord in normalized_coords]
+
+
 def preprocess_landmarks(landmarks: list):
 
     _landmarks = []
 
-    base_x, base_y = landmarks[0][0], landmarks[0][1]
-    for landmark_point in landmarks:
-        _landmarks.extend([
-            landmark_point[0] - base_x,
-            landmark_point[1] - base_y
-        ])
-
-    # normalization
-    max_value = max(list(map(abs, _landmarks)))
-    _landmarks = list(map(lambda n: n / max_value, _landmarks))
+    _landmarks.extend(feature1_norm_relative_coord(landmarks))
+    # _landmarks.extend(feature2_parwise_distance(landmarks))
+    _landmarks.extend(feature3_angles(landmarks))
+    _landmarks.extend(feature4_euclidean_distance(landmarks))
+    _landmarks.extend(feature5_euclidean_distance(landmarks))
 
     return _landmarks
 
@@ -42,9 +123,9 @@ def landmarks_list(image, landmarks):
     for landmark in landmarks.landmark:
         landmark_x = min(int(landmark.x * image_width), image_width - 1)
         landmark_y = min(int(landmark.y * image_height), image_height - 1)
-        # landmark_z
+        landmark_z = min(int(landmark.z * image_height), image_height - 1)
 
-        landmark_points.append([landmark_x, landmark_y])
+        landmark_points.append([landmark_x, landmark_y, landmark_z])
 
     return landmark_points
 
@@ -69,14 +150,15 @@ def get_landmarks(image, face_mesh=face_mesh):
 
 
 def crop_face(image):
-    """
-    Detect and crop face from image
-    """
-    # Detect face
+    '''
+    Оставить только лицо для распознавания
+    '''
     results = face_detection.process(image)
 
     if not results.detections:
-        raise ValueError('No face detected in the image.')
+        print(f'No face detected in the image')
+        return None
+
 
     # Get the first face detection
     detection = results.detections[0]
@@ -91,7 +173,7 @@ def crop_face(image):
     w = int(bbox.width * iw)
     h = int(bbox.height * ih)
 
-    # Optional: Add some padding
+    # Add some padding
     pad = int(max(w, h) * 0.2)
     x = max(0, x - pad)
     y = max(0, y - pad)
@@ -101,28 +183,49 @@ def crop_face(image):
     # Crop face
     face_crop = image[y:y+h, x:x+w]
 
-    return face_crop
+    return np.ascontiguousarray(face_crop)
 
 
 def read_image(path: str):
     image = cv2.imread(path)
-    # image = cv2.flip(image, 1)
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
 
 def preprocess_image(path: str):
     image = read_image(path)
 
-    # image = crop_face(image)
+    image = crop_face(image)
 
     # resize?
     # face_resized = cv2.resize(face_crop, (96, 96))
     # show_face(face_resized)
 
-    landmarks_lst = get_landmarks(image)
-    if landmarks_lst:
-        landmarks_norm = preprocess_landmarks(landmarks_lst)
+    if image is not None:
+        landmarks_lst = get_landmarks(image)
+        if landmarks_lst:
+            landmarks_norm = preprocess_landmarks(landmarks_lst)
 
-        return landmarks_norm
+            return landmarks_norm
 
-    return None
+        return None
+
+def preprocess_image(image: str):
+
+    if isinstance(image, str):
+        image = read_image(image)
+
+    image = cv2.flip(image, 1)
+    image = crop_face(image)
+
+    # resize?
+    # face_resized = cv2.resize(face_crop, (96, 96))
+    # show_face(face_resized)
+
+    if image is not None:
+        landmarks_lst = get_landmarks(image)
+        if landmarks_lst:
+            landmarks_norm = preprocess_landmarks(landmarks_lst)
+
+            return landmarks_norm
+
+        return None
