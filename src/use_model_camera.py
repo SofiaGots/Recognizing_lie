@@ -8,7 +8,6 @@ import os
 from loguru import logger as log
 
 from lib.emotion_net import EmotionNet
-from lib.dataset import get_data
 from lib.emotion_rec import classify_emotion
 
 from lib.landmark import preprocess_image, get_face_coordinates

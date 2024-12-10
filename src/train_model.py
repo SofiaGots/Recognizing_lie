@@ -10,7 +10,6 @@ import os
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from lib.emotion_net import EmotionNet
 from lib import encoder
@@ -43,7 +42,7 @@ np.save(SCALER_SCALE, scaler.scale_)
 # Разделение данных (на тестовые и обучающие)
 X_train, X_test, y_train, y_test = train_test_split(landmarks_normalized, emotion, test_size=0.2, random_state=RANDOM_STATE)
 
-# Преобразование в PyTorch тензоры
+# Преобразование в PyTorch тензоры (вектора)
 X_train = torch.tensor(X_train, dtype=torch.float32)
 X_test = torch.tensor(X_test, dtype=torch.float32)
 y_train = torch.tensor(y_train, dtype=torch.long)
@@ -81,6 +80,7 @@ with torch.no_grad():
     print(f"Accuracy: {accuracy * 100:.2f}%")
 
     # # Матрица ошибок (можно раскоментировать, чтобы посмотреть на результат работы)
+    # # Код скопирован из интернета, так как я не умею работать с матрицами и таблицами
     # cm = confusion_matrix(y_test.numpy(), y_pred_classes.numpy())
     # sns.heatmap(cm, annot=True, fmt='d')
     # plt.xlabel('Predicted')

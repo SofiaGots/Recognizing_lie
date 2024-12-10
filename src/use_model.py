@@ -1,7 +1,5 @@
 import torch
 import numpy as np
-import cv2
-import mediapipe as mp
 import os
 
 # Библиотеки, взятые из интернета (вся работа с ними также взята из интернета)
