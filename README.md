@@ -4,11 +4,11 @@
 ### Подготовка проекта
 1) Клонирование репозитория
 ```
-git clone https://github.com/STIPCHIK/FallingCircles.git
+git clone https://github.com/SofiaGots/Recognizing_lie_and_emotions
 ```
 2) Открытие папки
 ```
-cd FallingCircles
+cd Recognizing_lie_and_emotions
 ```
 3) Установка нужных библиотек
 ```
