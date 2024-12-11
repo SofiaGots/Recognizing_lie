@@ -29,6 +29,9 @@ pip install -r requirements.txt
 
 ### Итоговый результат
 ![Happy](./img/happy.png)
+![Angry](./img/angry.png)
+![Neutral](./img/neutral.png)
+![Sad](./img/sad.png)
 
 ### Статус проекта
 
